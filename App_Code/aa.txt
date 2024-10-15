@@ -1,0 +1,8 @@
+SELECT        tblsuorder.intOrderId, tblsuorder.varBookingId, tblsuorder.dtDate, tblsucustomer.varCompanyName, tblsuorderdetails.varProductName, tblsuproducts.varWeight, 
+                         tblsuorderdetails.varQuantity * tblsuproducts.intPacking + tblsuorderdetails.varNag AS Quantity, 
+                         (tblsuorderdetails.varQuantity * tblsuproducts.intPacking + tblsuorderdetails.varNag) * tblsuproducts.varWeight AS TotalKg, tblsuorderdetails.varPrice, 
+                         tblsuorder.ex2 AS discount
+FROM            tblsuorder INNER JOIN
+                         tblsuorderdetails ON tblsuorder.intOrderId = tblsuorderdetails.intOrderId INNER JOIN
+                         tblsuproducts ON tblsuorderdetails.intProductId = tblsuproducts.intId INNER JOIN
+                         tblsucustomer ON tblsuorder.intCustId = tblsucustomer.intId

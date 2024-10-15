@@ -1,0 +1,93 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Net;
+using Newtonsoft.Json.Linq;
+using MySql.Data.MySqlClient;
+using System.Data;
+using System.Configuration;
+
+public partial class Personnel_admin_emails_SendEmail : System.Web.UI.Page
+{
+    public MySql.Data.MySqlClient.MySqlConnection con,con1; 
+    
+    public MySql.Data.MySqlClient.MySqlDataReader dr;
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        con = new MySql.Data.MySqlClient.MySqlConnection();
+        con.ConnectionString = ConfigurationManager.ConnectionStrings["emailConnectionString"].ConnectionString;
+        con1 = new MySql.Data.MySqlClient.MySqlConnection();
+        con1.ConnectionString = ConfigurationManager.ConnectionStrings["emailConnectionString"].ConnectionString;
+   
+        sendemail();
+    }
+
+    public void sendemail()
+    {
+        string apiUrl = "http://api.verify-email.org/api.php?";
+        string apiUsername = "info@sanghavi";
+        string apiPassword = "info@sanghavi";
+        string email = string.Empty;
+        MySql.Data.MySqlClient.MySqlCommand cmd = new MySql.Data.MySqlClient.MySqlCommand("SELECT emails FROM emails", con);
+        con.Open();
+        dr = cmd.ExecuteReader();
+        while(dr.Read())
+        {
+            email = dr["emails"].ToString();
+
+            WebClient webClient = new WebClient();
+            string result = webClient.DownloadString(string.Format("{0}usr={1}&pwd={2}&check={3}", apiUrl, apiUsername, apiPassword, email));
+
+            JObject objJSON = default(JObject);
+            objJSON = JObject.Parse(result);
+
+            if (objJSON["verify_status"] != null)
+            {
+                if (Convert.ToInt32(objJSON["verify_status"].ToString()) == 1)
+                {
+                    con1.Open();
+                    MySql.Data.MySqlClient.MySqlCommand cmd1 = new MySql.Data.MySqlClient.MySqlCommand("UPDATE testemail.emails SET status='good' WHERE emails='" + email + "'", con1);
+                    cmd1.ExecuteNonQuery();
+                    con1.Close();
+     
+                    
+                   // Response.Write("good");
+                }
+                else
+                {
+                    con1.Open();
+                    MySql.Data.MySqlClient.MySqlCommand cmd1 = new MySql.Data.MySqlClient.MySqlCommand("UPDATE testemail.emails SET status='bad' WHERE emails='" + email + "'", con1);
+                    cmd1.ExecuteNonQuery();
+                    con1.Close();
+                   // Response.Write("bad");
+
+                }
+            }
+        }
+        con.Close();
+        
+
+     
+        //if (objJSON["verify_status"] != null)
+        //    Response.Write(string.Format("The email address {0} is {1}", email, Convert.ToBoolean(Convert.ToInt32(objJSON["verify_status"].ToString())) ? "GOOD" : "BAD or cannot be verified"));
+
+        //if (objJSON["authentication_status"] != null)
+        //    Response.Write(string.Format("authentication_status: {0} (your authentication status: 1 = success; 0 = invalid user)", objJSON["authentication_status"].ToString()));
+
+        //if (objJSON["limit_status"] != null)
+        //    Response.Write(string.Format("limit_status: {0}", objJSON["limit_status"].ToString()));
+
+        //if (objJSON["limit_desc"] != null)
+        //    Response.Write(string.Format("limit_desc: {0}", objJSON["limit_desc"].ToString()));
+
+        //if (objJSON["verify_status"] != null)
+        //    Response.Write(string.Format("verify_status: {0} (entered email is: 1 = OK; 0 = BAD)", objJSON["verify_status"].ToString()));
+
+        //if (objJSON["verify_status_desc"] != null)
+        //    Response.Write(string.Format("verify_status_desc: {0}", objJSON["verify_status_desc"].ToString()));
+    }
+}
